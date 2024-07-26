@@ -1,0 +1,16 @@
+[package]
+name = "dirqd"
+version = "0.1.0"
+edition = "2021"
+description = "Invoke processes based on incoming files in a directory"
+authors = ["Kenneth Wang Pedersen <kenneth@wangpedersen.com>"]
+repository = "https://github.com/kennep/dirqd/"
+license = "MIT"
+categories = ["command-line-utilities"]
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+env_logger = "0.11.3"
+glob = "0.3.1"
+log = "0.4.21"
+notify = "6.1.1"
