@@ -1,11 +1,13 @@
 use std::{fs, sync::mpsc};
+use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 use std::process::Command;
 use notify::event::{CreateKind, ModifyKind};
-use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Result, Watcher};
+use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use log::{debug, info, warn, error};
 use clap::Parser;
 use env_logger::Env;
+use anyhow::{Context, Result, bail};
 
 /// Invoke processes based on incoming files in a directory.
 #[derive(Debug, Parser)]
@@ -21,13 +23,20 @@ pub struct DirQDArgs {
     #[arg(short = 'p', long, default_value = "*")]
     pattern: glob::Pattern,
 
-    /// If invoking command fails, move files here instead of deleting them
+    /// After successfully processing, move files here. Cannot be used with --delete.
+    #[arg(short = 'P', long)]
+    processed_queue: Option<PathBuf>,
+    
+    /// After successful processing, delete file. Cannot be used with --processed-queue.
+    #[arg(long)]
+    delete: bool,
+    /// If invoking command fails, move files here. Cannot be used with --delete-on-error.
     #[arg(short = 'E', long)]
     error_queue: Option<PathBuf>,
 
-    /// After successfully processing, move files here instead of deleting them
-    #[arg(short = 'P', long)]
-    processed_queue: Option<PathBuf>,
+    /// If invoking command fails, delete file. Cannot be used with --error-queue.
+    #[arg(long)]
+    delete_on_error: bool,
 }
 
 fn main() -> Result<()> {
@@ -38,17 +47,35 @@ fn main() -> Result<()> {
 
     let args = DirQDArgs::parse();
 
+    // Cross validation
+    if (args.error_queue.is_none() && !args.delete_on_error) || (!args.error_queue.is_none() && args.delete_on_error) {
+        bail!("Either -E/--error-queue or --delete-on-error must be specified");
+    }
+    if (args.processed_queue.is_none() && !args.delete) || (!args.processed_queue.is_none() && args.delete) {
+        bail!("Either -P/--processed-queue or --delete must be specified");
+    }
+
     info!("Directory: {:?}", args.directory);
     info!("Command: {:?}", args.command);
     info!("Pattern: {}", args.pattern);
-    info!("Error queue: {:?}", args.error_queue);
-    info!("Processed queue: {:?}", args.processed_queue);
+    if args.delete {
+        info!("Files will be deleted after successful processing")
+    } else {
+        info!("Processed queue: {:?}", args.processed_queue.to_owned().unwrap());
+    }
+    if args.delete_on_error {
+        info!("Files will be deleted on error")
+    } else {
+        info!("Error queue: {:?}", args.error_queue.to_owned().unwrap());
+    }
 
     let (tx, rx) = mpsc::channel();
 
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
 
-    watcher.watch(&args.directory, RecursiveMode::NonRecursive).unwrap();
+    watcher.watch(&args.directory, RecursiveMode::NonRecursive)
+        .with_context(|| format!("Could not watch directory {:?}", args.directory))
+        ?;
 
     scan_dir(&args);
 
