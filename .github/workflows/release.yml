@@ -89,12 +89,12 @@ jobs:
         run: cargo build --all --release
 
       - name: Strip and rename binary
-        run: strip target/release/dirqd && mv target/release/dirqd target/release/dirqd_macos_amd64
+        run: strip target/release/dirqd && mv target/release/dirqd target/release/dirqd_macos_arm64
 
       - name: Release
         uses: softprops/action-gh-release@9a28f2423fd7ba2781181bb13e8aba228027c4e9
         with:
           files: |
-            target/release/dirqd_macos_amd64
+            target/release/dirqd_macos_arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

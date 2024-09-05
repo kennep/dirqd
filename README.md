@@ -9,7 +9,7 @@ different directory.
 
 ## Download 
 
-Pre-compiled binaries for Linux, Windows and (Intel) macOS are available on the
+Pre-compiled binaries for Linux, Windows and macOS (ARM64) are available on the
 [releases](https://github.com/kennep/dirqd/releases/latest) page.
 
 ## Building
