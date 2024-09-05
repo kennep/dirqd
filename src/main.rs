@@ -46,12 +46,12 @@ fn main() -> Result<()> {
 
     // Cross validation
     if (args.error_queue.is_none() && !args.delete_on_error)
-        || (!args.error_queue.is_none() && args.delete_on_error)
+        || (args.error_queue.is_some() && args.delete_on_error)
     {
         bail!("Either -E/--error-queue or --delete-on-error must be specified");
     }
     if (args.processed_queue.is_none() && !args.delete)
-        || (!args.processed_queue.is_none() && args.delete)
+        || (args.processed_queue.is_some() && args.delete)
     {
         bail!("Either -P/--processed-queue or --delete must be specified");
     }
