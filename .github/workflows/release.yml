@@ -12,48 +12,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Run cargo login
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
-        with:
-          command: login
-          args: "${{secrets.CARGO_TOKEN}}"
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@ed2356ad628626a6b3f5be6c3e0255c0454fcdb9
+
+      - name: Run tests
+        run: cargo login $CARGO_TOKEN
+        env:
+          CARGO_TOKEN: ${{secrets.CARGO_TOKEN}}
+
+      - name: Run publish
+        run: cargo publish
  
-      - name: Run cargo publish
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
-        with:
-          command: publish
-
   release_linux:
     name: Release (Linux)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
+        uses: dtolnay/rust-toolchain@ed2356ad628626a6b3f5be6c3e0255c0454fcdb9
 
       - name: Run cargo build
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
-        with:
-          command: build
-          args: --all --release
+        run: cargo build --all --release
 
       - name: Strip and rename binary
-        run: strip target/release/b64url && mv target/release/b64url target/release/b64url_linux_amd64
+        run: strip target/release/dirqd && mv target/release/dirqd target/release/dirqd_linux_amd64
 
       - name: Release
-        uses: softprops/action-gh-release@b21b43df682dab285bf5146c1955e7f3560805f8
+        uses: softprops/action-gh-release@9a28f2423fd7ba2781181bb13e8aba228027c4e9
         with:
           files: |
-            target/release/b64url_linux_amd64
+            target/release/dirqd_linux_amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -62,30 +54,22 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
+        uses: dtolnay/rust-toolchain@ed2356ad628626a6b3f5be6c3e0255c0454fcdb9
 
       - name: Run cargo build
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
-        with:
-          command: build
-          args: --all --release
+        run: cargo build --all --release
 
       - name: Rename binary
-        run: ren target/release/b64url.exe b64url_windows_amd64.exe
+        run: ren target/release/dirqd.exe dirqd_windows_amd64.exe
 
       - name: Release
-        uses: softprops/action-gh-release@b21b43df682dab285bf5146c1955e7f3560805f8
+        uses: softprops/action-gh-release@9a28f2423fd7ba2781181bb13e8aba228027c4e9
         with:
           files: |
-            target/release/b64url_windows_amd64.exe
+            target/release/dirqd_windows_amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -94,30 +78,21 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
-        with:
-          profile: minimal
-          toolchain: stable
-          target: x86_64-apple-darwin
-          override: true
-          components: rustfmt, clippy
+        uses: dtolnay/rust-toolchain@ed2356ad628626a6b3f5be6c3e0255c0454fcdb9
 
       - name: Run cargo build
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505
-        with:
-          command: build
-          args: --all --release
+        run: cargo build --all --release
 
       - name: Strip and rename binary
-        run: strip target/release/b64url && mv target/release/b64url target/release/b64url_macos_amd64
+        run: strip target/release/dirqd && mv target/release/dirqd target/release/dirqd_macos_amd64
 
       - name: Release
-        uses: softprops/action-gh-release@b21b43df682dab285bf5146c1955e7f3560805f8
+        uses: softprops/action-gh-release@9a28f2423fd7ba2781181bb13e8aba228027c4e9
         with:
           files: |
-            target/release/b64url_macos_amd64
+            target/release/dirqd_macos_amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
