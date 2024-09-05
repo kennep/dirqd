@@ -1,10 +1,8 @@
 use std::{fs, sync::mpsc};
-use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 use std::process::Command;
-use notify::event::{CreateKind, ModifyKind};
-use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use log::{debug, info, warn, error};
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use log::{debug, info, error};
 use clap::Parser;
 use env_logger::Env;
 use anyhow::{Context, Result, bail};
