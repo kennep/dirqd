@@ -1,11 +1,11 @@
-use std::{fs, sync::mpsc};
-use std::path::PathBuf;
-use std::process::Command;
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
-use log::{debug, info, error};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use env_logger::Env;
-use anyhow::{Context, Result, bail};
+use log::{debug, error, info};
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use std::path::PathBuf;
+use std::process::Command;
+use std::{fs, sync::mpsc};
 
 /// Invoke processes based on incoming files in a directory.
 #[derive(Debug, Parser)]
@@ -24,7 +24,7 @@ pub struct DirQDArgs {
     /// After successfully processing, move files here. Cannot be used with --delete.
     #[arg(short = 'P', long)]
     processed_queue: Option<PathBuf>,
-    
+
     /// After successful processing, delete file. Cannot be used with --processed-queue.
     #[arg(long)]
     delete: bool,
@@ -38,18 +38,21 @@ pub struct DirQDArgs {
 }
 
 fn main() -> Result<()> {
-    let env = Env::default()
-        .filter_or("DIRQD_LOG", "debug");
+    let env = Env::default().filter_or("DIRQD_LOG", "debug");
 
     env_logger::init_from_env(env);
 
     let args = DirQDArgs::parse();
 
     // Cross validation
-    if (args.error_queue.is_none() && !args.delete_on_error) || (!args.error_queue.is_none() && args.delete_on_error) {
+    if (args.error_queue.is_none() && !args.delete_on_error)
+        || (!args.error_queue.is_none() && args.delete_on_error)
+    {
         bail!("Either -E/--error-queue or --delete-on-error must be specified");
     }
-    if (args.processed_queue.is_none() && !args.delete) || (!args.processed_queue.is_none() && args.delete) {
+    if (args.processed_queue.is_none() && !args.delete)
+        || (!args.processed_queue.is_none() && args.delete)
+    {
         bail!("Either -P/--processed-queue or --delete must be specified");
     }
 
@@ -59,7 +62,10 @@ fn main() -> Result<()> {
     if args.delete {
         info!("Files will be deleted after successful processing")
     } else {
-        info!("Processed queue: {:?}", args.processed_queue.to_owned().unwrap());
+        info!(
+            "Processed queue: {:?}",
+            args.processed_queue.to_owned().unwrap()
+        );
     }
     if args.delete_on_error {
         info!("Files will be deleted on error")
@@ -71,9 +77,9 @@ fn main() -> Result<()> {
 
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
 
-    watcher.watch(&args.directory, RecursiveMode::NonRecursive)
-        .with_context(|| format!("Could not watch directory {:?}", args.directory))
-        ?;
+    watcher
+        .watch(&args.directory, RecursiveMode::NonRecursive)
+        .with_context(|| format!("Could not watch directory {:?}", args.directory))?;
 
     scan_dir(&args);
 
@@ -92,8 +98,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn scan_dir(config: &DirQDArgs)
-{
+fn scan_dir(config: &DirQDArgs) {
     match fs::read_dir(&config.directory) {
         Ok(entries) => {
             for entry in entries {
@@ -102,12 +107,12 @@ fn scan_dir(config: &DirQDArgs)
                         if entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
                             handle_file(&entry, config)
                         }
-                    },
+                    }
                     Err(e) => error!("Error on directory entry: {e}"),
                 }
-            }       
-        },
-        Err(e) => error!("Error while enumerating directory: {e}")
+            }
+        }
+        Err(e) => error!("Error while enumerating directory: {e}"),
     }
 }
 
@@ -139,10 +144,9 @@ fn handle_file(entry: &fs::DirEntry, config: &DirQDArgs) {
 
     match command.status() {
         Ok(status) => handle_ok(&status, entry, config),
-        Err(error) => handle_error(&error, entry, config)
+        Err(error) => handle_error(&error, entry, config),
     }
 }
-
 
 fn handle_ok(status: &std::process::ExitStatus, entry: &fs::DirEntry, config: &DirQDArgs) {
     if status.success() {
@@ -168,15 +172,18 @@ fn process_file(entry: &fs::DirEntry, destination: &Option<PathBuf>) {
             debug!("Moving {:?} to {:?}", source_path, dest_path);
             match std::fs::rename(&source_path, &dest_path) {
                 Ok(_) => (),
-                Err(err) => error!("Error {} while renaming {:?} to {:?}", err, source_path, dest_path)
+                Err(err) => error!(
+                    "Error {} while renaming {:?} to {:?}",
+                    err, source_path, dest_path
+                ),
             }
-        },
+        }
         None => {
             let source_path = entry.path();
             debug!("Deleting {:?}", source_path);
             match std::fs::remove_file(&source_path) {
                 Ok(_) => (),
-                Err(err) => error!("Error {} while deleting {:?}", err, source_path)
+                Err(err) => error!("Error {} while deleting {:?}", err, source_path),
             }
         }
     }
